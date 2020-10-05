@@ -103,7 +103,7 @@ LONGLONG nTimer0Out = 0;
 typedef struct {
   uint32_t steps[N_AXIS];
   uint32_t step_event_count;
-  uint8_t direction_bits;
+  PORTPINDEF direction_bits;
   #ifdef VARIABLE_SPINDLE
     uint8_t is_pwm_rate_adjusted; // Tracks motions that require constant laser power/rate
   #endif
