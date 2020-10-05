@@ -141,7 +141,7 @@ typedef struct {
 
   uint8_t execute_step;     // Flags step execution for each interrupt.
 #ifndef WIN32
-  uint8_t step_pulse_time;  // Step pulse reset time after step rise
+  uint16_t step_pulse_time;  // Step pulse reset time after step rise
 #else
   LONGLONG step_pulse_time;
 #endif
