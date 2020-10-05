@@ -197,7 +197,7 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
   void _delay_ms(uint32_t x)
   {
     u32 temp;
-    SysTick->LOAD = (u32)72000000 / 8000;                     // Loading time
+    SysTick->LOAD = (u32)72000000 / 8000 * x;                 // Loading time
     SysTick->VAL = 0x00;                                      // Empty the counter
     SysTick->CTRL = 0x01;                                     // Start from bottom
     do
