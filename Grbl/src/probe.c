@@ -22,32 +22,32 @@
 
 
 // Inverts the probe pin state depending on user settings and probing cycle mode.
-uint8_t probe_invert_mask;
+uint16_t probe_invert_mask;
 
 
 // Probe pin initialization routine.
 void probe_init()
 {
-#ifdef AVRTARGET
-  PROBE_DDR &= ~(PROBE_MASK); // Configure as input pins
-  #ifdef DISABLE_PROBE_PIN_PULL_UP
-    PROBE_PORT &= ~(PROBE_MASK); // Normal low operation. Requires external pull-down.
-  #else
-    PROBE_PORT |= PROBE_MASK;    // Enable internal pull-up resistors. Normal high operation.
+  #ifdef AVRTARGET
+    PROBE_DDR &= ~(PROBE_MASK); // Configure as input pins
+    #ifdef DISABLE_PROBE_PIN_PULL_UP
+      PROBE_PORT &= ~(PROBE_MASK); // Normal low operation. Requires external pull-down.
+    #else
+      PROBE_PORT |= PROBE_MASK;    // Enable internal pull-up resistors. Normal high operation.
+    #endif
   #endif
-#endif
-#ifdef STM32F103C8
-	GPIO_InitTypeDef GPIO_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_PROBE_PORT, ENABLE);
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-#ifdef DISABLE_PROBE_PIN_PULL_UP
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-#else
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
-#endif
-	GPIO_InitStructure.GPIO_Pin = PROBE_MASK;
-	GPIO_Init(PROBE_PORT, &GPIO_InitStructure);
-#endif
+  #ifdef STM32F103C8
+    GPIO_InitTypeDef GPIO_InitStructure;
+    RCC_APB2PeriphClockCmd(RCC_PROBE_PORT, ENABLE);
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    #ifdef DISABLE_PROBE_PIN_PULL_UP
+      GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    #else
+      GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    #endif
+    GPIO_InitStructure.GPIO_Pin = PROBE_MASK;
+    GPIO_Init(PROBE_PORT, &GPIO_InitStructure);
+  #endif
   probe_configure_invert_mask(false); // Initialize invert mask.
 }
 
