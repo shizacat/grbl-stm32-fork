@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file    usb_int.h
+  * @file    stm32_it.h
   * @author  MCD Application Team
   * @version V4.1.0
   * @date    26-May-2017
-  * @brief   Endpoint CTR (Low and High) interrupt's service routines prototypes
+  * @brief   This file contains the headers of the interrupt handlers.
   ******************************************************************************
   * @attention
   *
@@ -37,19 +37,29 @@
 
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USB_INT_H
-#define __USB_INT_H
+#ifndef __STM32_IT_H
+#define __STM32_IT_H
 
 /* Includes ------------------------------------------------------------------*/
+#include "platform_config.h"
+
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-void CTR_LP(void);
-void CTR_HP(void);
 
-/* External variables --------------------------------------------------------*/
+void NMI_Handler(void);
+void HardFault_Handler(void);
+void MemManage_Handler(void);
+void BusFault_Handler(void);
+void UsageFault_Handler(void);
+void SVC_Handler(void);
+void DebugMon_Handler(void);
+void PendSV_Handler(void);
+void SysTick_Handler(void);
+void USBWakeUp_IRQHandler(void);
+void USB_FS_WKUP_IRQHandler(void);
 
-#endif /* __USB_INT_H */
+#endif /* __STM32_IT_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

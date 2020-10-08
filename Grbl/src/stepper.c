@@ -22,7 +22,6 @@
 #include "grbl.h"
 
 #ifdef STM32F103C8
-typedef int bool;
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_tim.h"
 #include "misc.h"

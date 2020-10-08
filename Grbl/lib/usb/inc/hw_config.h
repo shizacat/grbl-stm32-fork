@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file    usb_int.h
+  * @file    hw_config.h
   * @author  MCD Application Team
   * @version V4.1.0
   * @date    26-May-2017
-  * @brief   Endpoint CTR (Low and High) interrupt's service routines prototypes
+  * @brief   Hardware Configuration & Setup
   ******************************************************************************
   * @attention
   *
@@ -37,19 +37,34 @@
 
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USB_INT_H
-#define __USB_INT_H
+#ifndef __HW_CONFIG_H
+#define __HW_CONFIG_H
 
 /* Includes ------------------------------------------------------------------*/
+#include "platform_config.h"
+#include "usb_type.h"
+
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
-/* Exported functions ------------------------------------------------------- */
-void CTR_LP(void);
-void CTR_HP(void);
+/* Exported define -----------------------------------------------------------*/
+#define MASS_MEMORY_START     0x04002000
+#define BULK_MAX_PACKET_SIZE  0x00000040
+#define LED_ON                0xF0
+#define LED_OFF               0xFF
 
+/* Exported functions ------------------------------------------------------- */
+void Set_System(void);
+void Set_USBClock(void);
+void Enter_LowPowerMode(void);
+void Leave_LowPowerMode(void);
+void USB_Interrupts_Config(void);
+void USB_Cable_Config (FunctionalState NewState);
+void Get_SerialNum(void);
+void LCD_Control(void);
+uint32_t CDC_Send_DATA (uint8_t *ptrBuffer, uint8_t Send_length);
+uint32_t CDC_Receive_DATA(void);
 /* External variables --------------------------------------------------------*/
 
-#endif /* __USB_INT_H */
-
+#endif  /*__HW_CONFIG_H*/
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

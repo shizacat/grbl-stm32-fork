@@ -1,17 +1,50 @@
-/******************** (C) COPYRIGHT 2010 STMicroelectronics ********************
-* File Name          : usb_core.c
-* Author             : MCD Application Team
-* Version            : V3.2.1
-* Date               : 07/05/2010
-* Description        : Standard protocol processing (USB v2.0)
-********************************************************************************
-* THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
-* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
-* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
-* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
-* CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
-* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
-*******************************************************************************/
+/**
+  ******************************************************************************
+  * @file    usb_core.c
+  * @author  MCD Application Team
+  * @version V4.1.0
+  * @date    26-May-2017
+  * @brief   Standard protocol processing (USB v2.0)
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics International N.V. 
+  * All rights reserved.</center></h2>
+  *
+  * Redistribution and use in source and binary forms, with or without 
+  * modification, are permitted, provided that the following conditions are met:
+  *
+  * 1. Redistribution of source code must retain the above copyright notice, 
+  *    this list of conditions and the following disclaimer.
+  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  *    this list of conditions and the following disclaimer in the documentation
+  *    and/or other materials provided with the distribution.
+  * 3. Neither the name of STMicroelectronics nor the names of other 
+  *    contributors to this software may be used to endorse or promote products 
+  *    derived from this software without specific written permission.
+  * 4. This software, including modifications and/or derivative works of this 
+  *    software, must execute solely and exclusively on microcontroller or
+  *    microprocessor devices manufactured by or for STMicroelectronics.
+  * 5. Redistribution and use of this software other than as permitted under 
+  *    this license is void and will automatically terminate your rights under 
+  *    this license. 
+  *
+  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS" 
+  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT 
+  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+  * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
+  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT 
+  * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  ******************************************************************************
+  */
+
 
 /* Includes ------------------------------------------------------------------*/
 #include "usb_lib.h"
@@ -20,14 +53,9 @@
 #define ValBit(VAR,Place)    (VAR & (1 << Place))
 #define SetBit(VAR,Place)    (VAR |= (1 << Place))
 #define ClrBit(VAR,Place)    (VAR &= ((1 << Place) ^ 255))
-
-#ifdef STM32F10X_CL
- #define Send0LengthData()  {PCD_EP_Write (0, 0, 0) ; vSetEPTxStatus(EP_TX_VALID);}
-#else
 #define Send0LengthData() { _SetEPTxCount(ENDP0, 0); \
     vSetEPTxStatus(EP_TX_VALID); \
   }
-#endif /* STM32F10X_CL */
 
 #define vSetEPRxStatus(st) (SaveRState = st)
 #define vSetEPTxStatus(st) (SaveTState = st)
@@ -41,7 +69,7 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 uint16_t_uint8_t StatusInfo;
-
+__IO uint32_t DevRemoteWakeup = 0;
 bool Data_Mul_MaxPacketSize = FALSE;
 /* Private function prototypes -----------------------------------------------*/
 static void DataStageOut(void);
@@ -50,14 +78,14 @@ static void NoData_Setup0(void);
 static void Data_Setup0(void);
 /* Private functions ---------------------------------------------------------*/
 
-/*******************************************************************************
-* Function Name  : Standard_GetConfiguration.
-* Description    : Return the current configuration variable address.
-* Input          : Length - How many bytes are needed.
-* Output         : None.
-* Return         : Return 1 , if the request is invalid when "Length" is 0.
-*                  Return "Buffer" if the "Length" is not 0.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_GetConfiguration.
+  * Description    : Return the current configuration variable address.
+  * Input          : Length - How many bytes are needed.
+  * Output         : None.
+  * Return         : Return 1 , if the request is invalid when "Length" is 0.
+  *                  Return "Buffer" if the "Length" is not 0.
+  */
 uint8_t *Standard_GetConfiguration(uint16_t Length)
 {
   if (Length == 0)
@@ -70,20 +98,20 @@ uint8_t *Standard_GetConfiguration(uint16_t Length)
   return (uint8_t *)&pInformation->Current_Configuration;
 }
 
-/*******************************************************************************
-* Function Name  : Standard_SetConfiguration.
-* Description    : This routine is called to set the configuration value
-*                  Then each class should configure device themself.
-* Input          : None.
-* Output         : None.
-* Return         : Return USB_SUCCESS, if the request is performed.
-*                  Return USB_UNSUPPORT, if the request is invalid.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_SetConfiguration.
+  * Description    : This routine is called to set the configuration value
+  *                  Then each class should configure device itself.
+  * Input          : None.
+  * Output         : None.
+  * Return         : Return USB_SUCCESS, if the request is performed.
+  *                  Return USB_UNSUPPORT, if the request is invalid.
+  */
 RESULT Standard_SetConfiguration(void)
 {
 
   if ((pInformation->USBwValue0 <=
-      Device_Table.Total_Configuration) && (pInformation->USBwValue1 == 0)
+       Device_Table.Total_Configuration) && (pInformation->USBwValue1 == 0)
       && (pInformation->USBwIndex == 0)) /*call Back usb spec 2.0*/
   {
     pInformation->Current_Configuration = pInformation->USBwValue0;
@@ -96,14 +124,14 @@ RESULT Standard_SetConfiguration(void)
   }
 }
 
-/*******************************************************************************
-* Function Name  : Standard_GetInterface.
-* Description    : Return the Alternate Setting of the current interface.
-* Input          : Length - How many bytes are needed.
-* Output         : None.
-* Return         : Return 0, if the request is invalid when "Length" is 0.
-*                  Return "Buffer" if the "Length" is not 0.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_GetInterface.
+  * Description    : Return the Alternate Setting of the current interface.
+  * Input          : Length - How many bytes are needed.
+  * Output         : None.
+  * Return         : Return 0, if the request is invalid when "Length" is 0.
+  *                  Return "Buffer" if the "Length" is not 0.
+  */
 uint8_t *Standard_GetInterface(uint16_t Length)
 {
   if (Length == 0)
@@ -116,15 +144,15 @@ uint8_t *Standard_GetInterface(uint16_t Length)
   return (uint8_t *)&pInformation->Current_AlternateSetting;
 }
 
-/*******************************************************************************
-* Function Name  : Standard_SetInterface.
-* Description    : This routine is called to set the interface.
-*                  Then each class should configure the interface them self.
-* Input          : None.
-* Output         : None.
-* Return         : - Return USB_SUCCESS, if the request is performed.
-*                  - Return USB_UNSUPPORT, if the request is invalid.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_SetInterface.
+  * Description    : This routine is called to set the interface.
+  *                  Then each class should configure the interface them self.
+  * Input          : None.
+  * Output         : None.
+  * Return         : - Return USB_SUCCESS, if the request is performed.
+  *                  - Return USB_UNSUPPORT, if the request is invalid.
+  */
 RESULT Standard_SetInterface(void)
 {
   RESULT Re;
@@ -152,14 +180,14 @@ RESULT Standard_SetInterface(void)
   return USB_UNSUPPORT;
 }
 
-/*******************************************************************************
-* Function Name  : Standard_GetStatus.
-* Description    : Copy the device request data to "StatusInfo buffer".
-* Input          : - Length - How many bytes are needed.
-* Output         : None.
-* Return         : Return 0, if the request is at end of data block,
-*                  or is invalid when "Length" is 0.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_GetStatus.
+  * Description    : Copy the device request data to "StatusInfo buffer".
+  * Input          : - Length - How many bytes are needed.
+  * Output         : None.
+  * Return         : Return 0, if the request is at end of data block,
+  *                  or is invalid when "Length" is 0.
+  */
 uint8_t *Standard_GetStatus(uint16_t Length)
 {
   if (Length == 0)
@@ -234,14 +262,14 @@ uint8_t *Standard_GetStatus(uint16_t Length)
   return (uint8_t *)&StatusInfo;
 }
 
-/*******************************************************************************
-* Function Name  : Standard_ClearFeature.
-* Description    : Clear or disable a specific feature.
-* Input          : None.
-* Output         : None.
-* Return         : - Return USB_SUCCESS, if the request is performed.
-*                  - Return USB_UNSUPPORT, if the request is invalid.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_ClearFeature.
+  * Description    : Clear or disable a specific feature.
+  * Input          : None.
+  * Output         : None.
+  * Return         : - Return USB_SUCCESS, if the request is performed.
+  *                  - Return USB_UNSUPPORT, if the request is invalid.
+  */
 RESULT Standard_ClearFeature(void)
 {
   uint32_t     Type_Rec = Type_Recipient;
@@ -294,9 +322,7 @@ RESULT Standard_ClearFeature(void)
       /* IN endpoint */
       if (_GetTxStallStatus(Related_Endpoint ))
       {
-      #ifndef STM32F10X_CL
         ClearDTOG_TX(Related_Endpoint);
-      #endif /* STM32F10X_CL */
         SetEPTxStatus(Related_Endpoint, EP_TX_VALID);
       }
     }
@@ -313,9 +339,7 @@ RESULT Standard_ClearFeature(void)
         }
         else
         {
-        #ifndef STM32F10X_CL
           ClearDTOG_RX(Related_Endpoint);
-        #endif /* STM32F10X_CL */
           _SetEPRxStatus(Related_Endpoint, EP_RX_VALID);
         }
       }
@@ -327,14 +351,14 @@ RESULT Standard_ClearFeature(void)
   return USB_UNSUPPORT;
 }
 
-/*******************************************************************************
-* Function Name  : Standard_SetEndPointFeature
-* Description    : Set or enable a specific feature of EndPoint
-* Input          : None.
-* Output         : None.
-* Return         : - Return USB_SUCCESS, if the request is performed.
-*                  - Return USB_UNSUPPORT, if the request is invalid.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_SetEndPointFeature
+  * Description    : Set or enable a specific feature of EndPoint
+  * Input          : None.
+  * Output         : None.
+  * Return         : - Return USB_SUCCESS, if the request is performed.
+  *                  - Return USB_UNSUPPORT, if the request is invalid.
+  */
 RESULT Standard_SetEndPointFeature(void)
 {
   uint32_t    wIndex0;
@@ -381,14 +405,14 @@ RESULT Standard_SetEndPointFeature(void)
   return USB_SUCCESS;
 }
 
-/*******************************************************************************
-* Function Name  : Standard_SetDeviceFeature.
-* Description    : Set or enable a specific feature of Device.
-* Input          : None.
-* Output         : None.
-* Return         : - Return USB_SUCCESS, if the request is performed.
-*                  - Return USB_UNSUPPORT, if the request is invalid.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_SetDeviceFeature.
+  * Description    : Set or enable a specific feature of Device.
+  * Input          : None.
+  * Output         : None.
+  * Return         : - Return USB_SUCCESS, if the request is performed.
+  *                  - Return USB_UNSUPPORT, if the request is invalid.
+  */
 RESULT Standard_SetDeviceFeature(void)
 {
   SetBit(pInformation->Current_Feature, 5);
@@ -396,25 +420,25 @@ RESULT Standard_SetDeviceFeature(void)
   return USB_SUCCESS;
 }
 
-/*******************************************************************************
-* Function Name  : Standard_GetDescriptorData.
-* Description    : Standard_GetDescriptorData is used for descriptors transfer.
-*                : This routine is used for the descriptors resident in Flash
-*                  or RAM
-*                  pDesc can be in either Flash or RAM
-*                  The purpose of this routine is to have a versatile way to
-*                  response descriptors request. It allows user to generate
-*                  certain descriptors with software or read descriptors from
-*                  external storage part by part.
-* Input          : - Length - Length of the data in this transfer.
-*                  - pDesc - A pointer points to descriptor struct.
-*                  The structure gives the initial address of the descriptor and
-*                  its original size.
-* Output         : None.
-* Return         : Address of a part of the descriptor pointed by the Usb_
-*                  wOffset The buffer pointed by this address contains at least
-*                  Length bytes.
-*******************************************************************************/
+/**
+  * Function Name  : Standard_GetDescriptorData.
+  * Description    : Standard_GetDescriptorData is used for descriptors transfer.
+  *                : This routine is used for the descriptors resident in Flash
+  *                  or RAM
+  *                  pDesc can be in either Flash or RAM
+  *                  The purpose of this routine is to have a versatile way to
+  *                  response descriptors request. It allows user to generate
+  *                  certain descriptors with software or read descriptors from
+  *                  external storage part by part.
+  * Input          : - Length - Length of the data in this transfer.
+  *                  - pDesc - A pointer points to descriptor struct.
+  *                  The structure gives the initial address of the descriptor and
+  *                  its original size.
+  * Output         : None.
+  * Return         : Address of a part of the descriptor pointed by the Usb_
+  *                  wOffset The buffer pointed by this address contains at least
+  *                  Length bytes.
+*/
 uint8_t *Standard_GetDescriptorData(uint16_t Length, ONE_DESCRIPTOR *pDesc)
 {
   uint32_t  wOffset;
@@ -429,13 +453,13 @@ uint8_t *Standard_GetDescriptorData(uint16_t Length, ONE_DESCRIPTOR *pDesc)
   return pDesc->Descriptor + wOffset;
 }
 
-/*******************************************************************************
-* Function Name  : DataStageOut.
-* Description    : Data stage of a Control Write Transfer.
-* Input          : None.
-* Output         : None.
-* Return         : None.
-*******************************************************************************/
+/**
+  * Function Name  : DataStageOut.
+  * Description    : Data stage of a Control Write Transfer.
+  * Input          : None.
+  * Output         : None.
+  * Return         : None.
+  */
 void DataStageOut(void)
 {
   ENDPOINT_INFO *pEPinfo = &pInformation->Ctrl_Info;
@@ -457,12 +481,8 @@ void DataStageOut(void)
     Buffer = (*pEPinfo->CopyData)(Length);
     pEPinfo->Usb_rLength -= Length;
     pEPinfo->Usb_rOffset += Length;
-
-  #ifdef STM32F10X_CL  
-    PCD_EP_Read(ENDP0, Buffer, Length); 
-  #else  
     PMAToUserBufferCopy(Buffer, GetEPRxAddr(ENDP0), Length);
-  #endif  /* STM32F10X_CL */
+
   }
 
   if (pEPinfo->Usb_rLength != 0)
@@ -484,19 +504,30 @@ void DataStageOut(void)
     }
     else if (pEPinfo->Usb_rLength == 0)
     {
+      /* USB spec: section 8.5.3.1 Reporting Status Results */
       pInformation->ControlState = WAIT_STATUS_IN;
-      USB_StatusIn();
+      (*pProperty->Process_Status_IN)();      
+      if (pInformation->ControlState == STALLED)
+      {
+        /* command failed to complete: 
+        in this case we should return a STALL */
+        vSetEPRxStatus(EP_RX_STALL);
+        vSetEPTxStatus(EP_TX_STALL);
+      }
+      /* command completed successfully: 
+      send a zero-length packet during status stage */
+      else USB_StatusIn();
     }
   }
 }
 
-/*******************************************************************************
-* Function Name  : DataStageIn.
-* Description    : Data stage of a Control Read Transfer.
-* Input          : None.
-* Output         : None.
-* Return         : None.
-*******************************************************************************/
+/**
+  * Function Name  : DataStageIn.
+  * Description    : Data stage of a Control Read Transfer.
+  * Input          : None.
+  * Output         : None.
+  * Return         : None.
+  */
 void DataStageIn(void)
 {
   ENDPOINT_INFO *pEPinfo = &pInformation->Ctrl_Info;
@@ -519,14 +550,8 @@ void DataStageIn(void)
     {
       /* No more data to send so STALL the TX Status*/
       ControlState = WAIT_STATUS_OUT;
-
-    #ifdef STM32F10X_CL      
-      PCD_EP_Read (ENDP0, 0, 0);
-    #endif  /* STM32F10X_CL */ 
-    
-    #ifndef STM32F10X_CL 
       vSetEPTxStatus(EP_TX_STALL);
-    #endif  /* STM32F10X_CL */ 
+ 
     }
     
     goto Expect_Status_Out;
@@ -541,12 +566,8 @@ void DataStageIn(void)
   }
 
   DataBuffer = (*pEPinfo->CopyData)(Length);
-
-#ifdef STM32F10X_CL
-  PCD_EP_Write (ENDP0, DataBuffer, Length);
-#else   
+  
   UserToPMABufferCopy(DataBuffer, GetEPTxAddr(ENDP0), Length);
-#endif /* STM32F10X_CL */ 
 
   SetEPTxCount(ENDP0, Length);
 
@@ -560,13 +581,13 @@ Expect_Status_Out:
   pInformation->ControlState = ControlState;
 }
 
-/*******************************************************************************
-* Function Name  : NoData_Setup0.
-* Description    : Proceed the processing of setup request without data stage.
-* Input          : None.
-* Output         : None.
-* Return         : None.
-*******************************************************************************/
+/**
+  * Function Name  : NoData_Setup0.
+  * Description    : Proceed the processing of setup request without data stage.
+  * Input          : None.
+  * Output         : None.
+  * Return         : None.
+  */
 void NoData_Setup0(void)
 {
   RESULT Result = USB_UNSUPPORT;
@@ -596,18 +617,13 @@ void NoData_Setup0(void)
       else
       {
         Result = USB_SUCCESS;
-
-      #ifdef STM32F10X_CL
-         SetDeviceAddress(pInformation->USBwValue0);
-      #endif  /* STM32F10X_CL */
       }
     }
     /*SET FEATURE for Device*/
     else if (RequestNo == SET_FEATURE)
     {
-      if ((pInformation->USBwValue0 == DEVICE_REMOTE_WAKEUP)
-          && (pInformation->USBwIndex == 0)
-          && (ValBit(pInformation->Current_Feature, 5)))
+      if ((pInformation->USBwValue0 == DEVICE_REMOTE_WAKEUP) \
+          && (pInformation->USBwIndex == 0))
       {
         Result = Standard_SetDeviceFeature();
       }
@@ -623,6 +639,7 @@ void NoData_Setup0(void)
           && pInformation->USBwIndex == 0
           && ValBit(pInformation->Current_Feature, 5))
       {
+        DevRemoteWakeup = 0;
         Result = Standard_ClearFeature();
       }
       else
@@ -688,13 +705,13 @@ exit_NoData_Setup0:
   return;
 }
 
-/*******************************************************************************
-* Function Name  : Data_Setup0.
-* Description    : Proceed the processing of setup request with data stage.
-* Input          : None.
-* Output         : None.
-* Return         : None.
-*******************************************************************************/
+/**
+  * Function Name  : Data_Setup0.
+  * Description    : Proceed the processing of setup request with data stage.
+  * Input          : None.
+  * Output         : None.
+  * Return         : None.
+  */
 void Data_Setup0(void)
 {
   uint8_t *(*CopyRoutine)(uint16_t);
@@ -719,6 +736,12 @@ void Data_Setup0(void)
       {
         CopyRoutine = pProperty->GetDeviceDescriptor;
       }
+#ifdef LPM_ENABLED
+      else if (wValue1 == DEVICE_BOS_DESCRIPTOR)
+      {
+        CopyRoutine = pProperty->GetBosDescriptor;
+      }
+#endif
       else if (wValue1 == CONFIG_DESCRIPTOR)
       {
         CopyRoutine = pProperty->GetConfigDescriptor;
@@ -867,13 +890,13 @@ void Data_Setup0(void)
   return;
 }
 
-/*******************************************************************************
-* Function Name  : Setup0_Process
-* Description    : Get the device request data and dispatch to individual process.
-* Input          : None.
-* Output         : None.
-* Return         : Post0_Process.
-*******************************************************************************/
+/**
+  * Function Name  : Setup0_Process
+  * Description    : Get the device request data and dispatch to individual process.
+  * Input          : None.
+  * Output         : None.
+  * Return         : Post0_Process.
+  */
 uint8_t Setup0_Process(void)
 {
 
@@ -882,19 +905,14 @@ uint8_t Setup0_Process(void)
     uint8_t* b;
     uint16_t* w;
   } pBuf;
-
-#ifdef STM32F10X_CL
-  USB_OTG_EP *ep;
+#if defined STM32F303xE || defined STM32F302x8 
   uint16_t offset = 0;
- 
-  ep = PCD_GetOutEP(ENDP0);
-  pBuf.b = ep->xfer_buff;
+  pBuf.b = (uint8_t *)( PMAAddr + _GetEPRxAddr(ENDP0));
 #else  
   uint16_t offset = 1;
   
   pBuf.b = PMAAddr + (uint8_t *)(_GetEPRxAddr(ENDP0) * 2); /* *2 for 32 bits addr */
-#endif /* STM32F10X_CL */
-
+#endif
   if (pInformation->ControlState != PAUSE)
   {
     pInformation->USBbmRequestType = *pBuf.b++; /* bmRequestType */
@@ -921,13 +939,13 @@ uint8_t Setup0_Process(void)
   return Post0_Process();
 }
 
-/*******************************************************************************
-* Function Name  : In0_Process
-* Description    : Process the IN token on all default endpoint.
-* Input          : None.
-* Output         : None.
-* Return         : Post0_Process.
-*******************************************************************************/
+/**
+  * Function Name  : In0_Process
+  * Description    : Process the IN token on all default endpoint.
+  * Input          : None.      
+  * Output         : None.
+  * Return         : Post0_Process.
+  */
 uint8_t In0_Process(void)
 {
   uint32_t ControlState = pInformation->ControlState;
@@ -961,13 +979,13 @@ uint8_t In0_Process(void)
   return Post0_Process();
 }
 
-/*******************************************************************************
-* Function Name  : Out0_Process
-* Description    : Process the OUT token on all default endpoint.
-* Input          : None.
-* Output         : None.
-* Return         : Post0_Process.
-*******************************************************************************/
+/**
+  * Function Name  : Out0_Process
+  * Description    : Process the OUT token on all default endpoint.
+  * Input          : None.
+  * Output         : None.
+  * Return         : Post0_Process.
+  */
 uint8_t Out0_Process(void)
 {
   uint32_t ControlState = pInformation->ControlState;
@@ -986,9 +1004,7 @@ uint8_t Out0_Process(void)
   else if (ControlState == WAIT_STATUS_OUT)
   {
     (*pProperty->Process_Status_OUT)();
-  #ifndef STM32F10X_CL
     ControlState = STALLED;
-  #endif /* STM32F10X_CL */
   }
 
 
@@ -1003,20 +1019,17 @@ uint8_t Out0_Process(void)
   return Post0_Process();
 }
 
-/*******************************************************************************
-* Function Name  : Post0_Process
-* Description    : Stall the Endpoint 0 in case of error.
-* Input          : None.
-* Output         : None.
-* Return         : - 0 if the control State is in PAUSE
-*                  - 1 if not.
-*******************************************************************************/
+/**
+  * Function Name  : Post0_Process
+  * Description    : Stall the Endpoint 0 in case of error.
+  * Input          : None.
+  * Output         : None.
+  * Return         : - 0 if the control State is in PAUSE
+  *                  - 1 if not.
+  */
 uint8_t Post0_Process(void)
 {
-#ifdef STM32F10X_CL  
-  USB_OTG_EP *ep;
-#endif /* STM32F10X_CL */
-      
+   
   SetEPRxCount(ENDP0, Device_Property.MaxPacketSize);
 
   if (pInformation->ControlState == STALLED)
@@ -1025,41 +1038,18 @@ uint8_t Post0_Process(void)
     vSetEPTxStatus(EP_TX_STALL);
   }
 
-#ifdef STM32F10X_CL
-  else if ((pInformation->ControlState == OUT_DATA) ||
-      (pInformation->ControlState == WAIT_STATUS_OUT))
-  {
-    ep = PCD_GetInEP(0);
-    ep->is_in = 0;
-    OTGD_FS_EP0StartXfer(ep);
-    
-    vSetEPTxStatus(EP_TX_VALID);
-  }
-  
-  else if ((pInformation->ControlState == IN_DATA) || 
-      (pInformation->ControlState == WAIT_STATUS_IN))
-  {
-    ep = PCD_GetInEP(0);
-    ep->is_in = 1;
-    OTGD_FS_EP0StartXfer(ep);    
-  }  
-#endif /* STM32F10X_CL */
-
   return (pInformation->ControlState == PAUSE);
 }
 
-/*******************************************************************************
-* Function Name  : SetDeviceAddress.
-* Description    : Set the device and all the used Endpoints addresses.
-* Input          : - Val: device adress.
-* Output         : None.
-* Return         : None.
-*******************************************************************************/
+/**
+  * Function Name  : SetDeviceAddress.
+  * Description    : Set the device and all the used Endpoints addresses.
+  * Input          : - Val: device address.
+  * Output         : None.
+  * Return         : None.
+  */
 void SetDeviceAddress(uint8_t Val)
 {
-#ifdef STM32F10X_CL 
-  PCD_EP_SetAddress ((uint8_t)Val);
-#else 
   uint32_t i;
   uint32_t nEP = Device_Table.Total_Endpoint;
 
@@ -1068,19 +1058,18 @@ void SetDeviceAddress(uint8_t Val)
   {
     _SetEPAddress((uint8_t)i, (uint8_t)i);
   } /* for */
-  _SetDADDR(Val | DADDR_EF); /* set device address and enable function */
-#endif  /* STM32F10X_CL */  
+  _SetDADDR(Val | DADDR_EF); /* set device address and enable function */ 
 }
 
-/*******************************************************************************
-* Function Name  : NOP_Process
-* Description    : No operation function.
-* Input          : None.
-* Output         : None.
-* Return         : None.
-*******************************************************************************/
+/**
+  * Function Name  : NOP_Process
+  * Description    : No operation function.
+  * Input          : None.
+  * Output         : None.
+  * Return         : None.
+  */
 void NOP_Process(void)
 {
 }
 
-/******************* (C) COPYRIGHT 2010 STMicroelectronics *****END OF FILE****/
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

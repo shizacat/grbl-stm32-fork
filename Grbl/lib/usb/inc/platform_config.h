@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file    usb_int.h
+  * @file    platform_config.h
   * @author  MCD Application Team
   * @version V4.1.0
   * @date    26-May-2017
-  * @brief   Endpoint CTR (Low and High) interrupt's service routines prototypes
+  * @brief   Evaluation board specific configuration file.
   ******************************************************************************
   * @attention
   *
@@ -35,21 +35,27 @@
   ******************************************************************************
   */
 
-
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USB_INT_H
-#define __USB_INT_H
+#ifndef __PLATFORM_CONFIG_H
+#define __PLATFORM_CONFIG_H
 
-/* Includes ------------------------------------------------------------------*/
+#include "stm32f10x.h"
+
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
-/* Exported macro ------------------------------------------------------------*/
-/* Exported functions ------------------------------------------------------- */
-void CTR_LP(void);
-void CTR_HP(void);
+/* Define if Low power mode is enabled; it allows entering the device into 
+   STOP mode following USB Suspend event, and wakes up after the USB wakeup
+   event is received. */
+//#define USB_LOW_PWR_MGMT_SUPPORT
 
-/* External variables --------------------------------------------------------*/
 
-#endif /* __USB_INT_H */
+/*Unique Devices IDs register set*/
+/*STM32F1x*/
+
+#define         ID1          (0x1FFFF7E8)
+#define         ID2          (0x1FFFF7EC)
+#define         ID3          (0x1FFFF7F0)
+
+#endif /* __PLATFORM_CONFIG_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

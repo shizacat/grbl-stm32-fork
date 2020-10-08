@@ -31,6 +31,13 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x.h"
 
+// Type from grbl.h and ust_type.h
+typedef enum
+{
+  FALSE = 0, TRUE  = !FALSE
+}
+bool;
+
 /** @addtogroup STM32F10x_StdPeriph_Driver
   * @{
   */
