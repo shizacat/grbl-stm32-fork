@@ -73,56 +73,58 @@ extern volatile uint8_t serial_tx_buffer_tail;
 * Output         : None.
 * Return         : None.
 *******************************************************************************/
+void EP1_IN_Callback (void) {
+  uint16_t USB_Tx_length;
+  uint8_t head;
 
-void EP1_IN_Callback (void)
-{
-  if ((serial_tx_buffer_head != serial_tx_buffer_tail) && 
-      (_GetEPTxStatus(ENDP1) == EP_TX_NAK)
-  )
-  {
-	  uint16_t USB_Tx_length;
+  if (_GetEPTxStatus(ENDP1) != EP_TX_NAK) {
+    return;
+  }
 
-    if (serial_tx_buffer_head > serial_tx_buffer_tail) {
-      USB_Tx_length = serial_tx_buffer_head - serial_tx_buffer_tail;
-    } else {
-      USB_Tx_length = TX_BUFFER_SIZE - serial_tx_buffer_tail + serial_tx_buffer_head;
+  // Need semaphor, very strange
+  head = serial_tx_buffer_head;
+
+  if (head == serial_tx_buffer_tail){
+    return;
+  }
+  if (head > serial_tx_buffer_tail) {
+    USB_Tx_length = head - serial_tx_buffer_tail;
+  } else {
+    USB_Tx_length = TX_BUFFER_SIZE - serial_tx_buffer_tail + head;
+  }
+
+  if (USB_Tx_length != 0) {
+    if (USB_Tx_length > 64) {
+      USB_Tx_length = 64;
     }
 
-    if (USB_Tx_length != 0) {
-      if (USB_Tx_length > 64) {
-        USB_Tx_length = 64;
+    // UserToPMABufferCopy(&serial_tx_buffer[serial_tx_buffer_tail], ENDP1_TXADDR, USB_Tx_length);
+    uint8_t *pbUsrBuf = serial_tx_buffer + serial_tx_buffer_tail;
+    uint32_t n = (USB_Tx_length + 1) >> 1;   /* n = (wNBytes + 1) / 2 */
+    uint32_t i, temp1;
+    uint16_t *pdwVal;
+    pdwVal = (uint16_t *)(ENDP1_TXADDR * 2 + PMAAddr);
+    for (i = n; i != 0; i--) {
+      temp1 = (uint16_t) * pbUsrBuf;
+      pbUsrBuf++;
+      if (pbUsrBuf - serial_tx_buffer == TX_BUFFER_SIZE){
+        pbUsrBuf = serial_tx_buffer;
       }
-
-      // UserToPMABufferCopy(&serial_tx_buffer[serial_tx_buffer_tail], ENDP1_TXADDR, USB_Tx_length);
-      {
-        uint8_t *pbUsrBuf = serial_tx_buffer + serial_tx_buffer_tail;
-        uint32_t n = (USB_Tx_length + 1) >> 1;   /* n = (wNBytes + 1) / 2 */
-        uint32_t i, temp1;
-        uint16_t *pdwVal;
-        pdwVal = (uint16_t *)(ENDP1_TXADDR * 2 + PMAAddr);
-        for (i = n; i != 0; i--) {
-          temp1 = (uint16_t) * pbUsrBuf;
-          pbUsrBuf++;
-          if (pbUsrBuf - serial_tx_buffer == TX_BUFFER_SIZE){
-            pbUsrBuf = serial_tx_buffer;
-          }
-          *pdwVal++ = temp1 | (uint16_t) * pbUsrBuf << 8;
-          pdwVal++;
-          pbUsrBuf++;
-          if (pbUsrBuf - serial_tx_buffer == TX_BUFFER_SIZE){
-            pbUsrBuf = serial_tx_buffer;
-          }
-        }
-      }
-
-	    SetEPTxCount(ENDP1, USB_Tx_length);
-	    SetEPTxValid(ENDP1);
-
-      serial_tx_buffer_tail += USB_Tx_length;
-      if (serial_tx_buffer_tail >= TX_BUFFER_SIZE){
-        serial_tx_buffer_tail -= TX_BUFFER_SIZE;
+      *pdwVal++ = temp1 | (uint16_t) * pbUsrBuf << 8;
+      pdwVal++;
+      pbUsrBuf++;
+      if (pbUsrBuf - serial_tx_buffer == TX_BUFFER_SIZE){
+        pbUsrBuf = serial_tx_buffer;
       }
     }
+
+    serial_tx_buffer_tail += USB_Tx_length;
+    if (serial_tx_buffer_tail >= TX_BUFFER_SIZE){
+      serial_tx_buffer_tail -= TX_BUFFER_SIZE;
+    }
+
+    SetEPTxCount(ENDP1, USB_Tx_length);
+	  SetEPTxValid(ENDP1);
 	}
 }
 
