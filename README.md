@@ -11,6 +11,10 @@ Used:
 
 - SWD work
 
+Pinout
+
+![Pinout](Docs/Images/stm32_cnc_pinout.png)
+
 # ChangeLog
 
 0.3:
