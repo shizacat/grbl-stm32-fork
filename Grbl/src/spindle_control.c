@@ -110,12 +110,12 @@ uint8_t spindle_get_state()
   uint8_t pin = 0;
 	#ifdef VARIABLE_SPINDLE
     #ifdef USE_SPINDLE_DIR_AS_ENABLE_PIN
-#ifdef AVRTARGET
-  pin = SPINDLE_ENABLE_PORT;
-#endif
-#if defined (STM32F103C8)
-  pin = GPIO_ReadInputData(SPINDLE_ENABLE_PORT);
-#endif
+      #ifdef AVRTARGET
+        pin = SPINDLE_ENABLE_PORT;
+      #endif
+      #if defined (STM32F103C8)
+        pin = GPIO_ReadInputData(SPINDLE_ENABLE_PORT);
+      #endif
 		  // No spindle direction output pin. 
 			#ifdef INVERT_SPINDLE_ENABLE_PIN
 			  if (bit_isfalse(pin,(1<<SPINDLE_ENABLE_BIT))) { return(SPINDLE_STATE_CW); }
@@ -123,25 +123,25 @@ uint8_t spindle_get_state()
 	 			if (bit_istrue(pin,(1<<SPINDLE_ENABLE_BIT))) { return(SPINDLE_STATE_CW); }
 	    #endif
     #else
-#ifdef AVRTARGET
-  pin = SPINDLE_DIRECTION_PORT;
-    if (SPINDLE_TCCRA_REGISTER & (1<<SPINDLE_COMB_BIT)) 
-#endif
-#if defined (STM32F103C8)
-      pin = GPIO_ReadInputData(SPINDLE_DIRECTION_PORT);
-#endif
-     {
-        if (pin & (1<<SPINDLE_DIRECTION_BIT)) { return(SPINDLE_STATE_CCW); }
+      #ifdef AVRTARGET
+        pin = SPINDLE_DIRECTION_PORT;
+        if (SPINDLE_TCCRA_REGISTER & (1<<SPINDLE_COMB_BIT)) 
+      #endif
+      #if defined (STM32F103C8)
+        pin = GPIO_ReadInputData(SPINDLE_DIRECTION_PORT);
+      #endif
+      {
+        if (pin & (1<<SPINDLE_DIRECTION_BIT)) {return(SPINDLE_STATE_CCW); }
         else { return(SPINDLE_STATE_CW); }
       }
     #endif
 	#else
-#ifdef AVRTARGET
-  pin = SPINDLE_ENABLE_PORT;
-#endif
-#if defined (STM32F103C8)
-  pin = GPIO_ReadInputData(SPINDLE_ENABLE_PORT);
-#endif
+    #ifdef AVRTARGET
+      pin = SPINDLE_ENABLE_PORT;
+    #endif
+    #if defined (STM32F103C8)
+      pin = GPIO_ReadInputData(SPINDLE_ENABLE_PORT);
+    #endif
 		#ifdef INVERT_SPINDLE_ENABLE_PIN
 		  if (bit_isfalse(pin,(1<<SPINDLE_ENABLE_BIT))) {
 		#else
