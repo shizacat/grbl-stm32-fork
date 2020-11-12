@@ -60,15 +60,16 @@ void spindle_init()
     RCC_APB2PeriphClockCmd(RCC_SPINDLE_ENABLE_PORT, ENABLE);
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    #ifdef USE_SPINDLE_DIR_AS_ENABLE_PIN
+
+    #ifndef USE_SPINDLE_DIR_AS_ENABLE_PIN    
       GPIO_InitStructure.GPIO_Pin = 1 << SPINDLE_ENABLE_BIT;
       GPIO_Init(SPINDLE_ENABLE_PORT, &GPIO_InitStructure);
-    #else
-      #ifndef ENABLE_DUAL_AXIS
-        GPIO_InitStructure.GPIO_Pin = 1 << SPINDLE_DIRECTION_BIT;
-        GPIO_Init(SPINDLE_ENABLE_PORT, &GPIO_InitStructure);
-      #endif
     #endif
+
+    // #ifndef ENABLE_DUAL_AXIS
+    // #endif
+    GPIO_InitStructure.GPIO_Pin = 1 << SPINDLE_DIRECTION_BIT;
+    GPIO_Init(SPINDLE_ENABLE_PORT, &GPIO_InitStructure);
 
     #ifdef VARIABLE_SPINDLE
       RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
@@ -175,23 +176,39 @@ void spindle_stop()
     #if defined (STM32F103C8)
       TIM_CtrlPWMOutputs(TIM1, DISABLE);
     #endif
+  #endif
 
-    #ifdef USE_SPINDLE_DIR_AS_ENABLE_PIN
-      #ifdef INVERT_SPINDLE_ENABLE_PIN
-        SetSpindleEnablebit();
-      #else
-        ResetSpindleEnablebit();
-      #endif
-    #endif
-  #else
+  #ifdef USE_SPINDLE_DIR_AS_ENABLE_PIN
     #ifdef INVERT_SPINDLE_ENABLE_PIN
       SetSpindleEnablebit();
     #else
       ResetSpindleEnablebit();
     #endif
   #endif
+  
+  #ifdef INVERT_SPINDLE_ENABLE_PIN
+    SetSpindleEnablebit();
+  #else
+    ResetSpindleEnablebit();
+  #endif
 }
 
+// Only pin
+void spindle_start(){
+  #ifdef USE_SPINDLE_DIR_AS_ENABLE_PIN
+    #ifndef INVERT_SPINDLE_ENABLE_PIN
+      SetSpindleDirectionBit();
+    #else
+      ResetSpindleDirectionBit();
+    #endif
+  #else
+    #ifndef INVERT_SPINDLE_ENABLE_PIN
+      SetSpindleEnablebit();
+    #else
+      ResetSpindleEnablebit();
+    #endif
+  #endif
+}
 
 #ifdef VARIABLE_SPINDLE
   // Sets spindle speed PWM output and enable pin, if configured. Called by spindle_set_state()
@@ -214,11 +231,7 @@ void spindle_stop()
 				#if defined (STM32F103C8)
 					TIM_CtrlPWMOutputs(TIM1, ENABLE);
 				#endif
-				#ifdef INVERT_SPINDLE_ENABLE_PIN
-					ResetSpindleEnablebit();
-				#else
-					SetSpindleEnablebit();
-				#endif
+				spindle_start();
 		 }
 		#else
 			if (pwm_value == SPINDLE_PWM_OFF_VALUE) {
@@ -333,42 +346,30 @@ void spindle_stop()
   if (sys.abort) { return; } // Block during abort.
 
   if (state == SPINDLE_DISABLE) { // Halt or set spindle direction and rpm.
-  
     #ifdef VARIABLE_SPINDLE
       sys.spindle_speed = 0.0f;
     #endif
     spindle_stop();
-  
   } else {
-    
-    #if !defined(USE_SPINDLE_DIR_AS_ENABLE_PIN) && !defined(ENABLE_DUAL_AXIS)
-      if (state == SPINDLE_ENABLE_CW) {
-        ResetSpindleDirectionBit();
-	    } else {
-        SetSpindleDirectionBit();
-      }
+    #if !defined(ENABLE_DUAL_AXIS)
+      #ifndef USE_SPINDLE_DIR_AS_ENABLE_PIN
+        if (state == SPINDLE_ENABLE_CW) {
+          ResetSpindleDirectionBit();
+        } else {
+          SetSpindleDirectionBit();
+        }
+      #endif
+      spindle_start();
+
+      #ifdef VARIABLE_SPINDLE
+        // NOTE: Assumes all calls to this function is when Grbl is not moving or must remain off.
+        if (settings.flags & BITFLAG_LASER_MODE) { 
+          if (state == SPINDLE_ENABLE_CCW) { rpm = 0.0; } // TODO: May need to be rpm_min*(100/MAX_SPINDLE_SPEED_OVERRIDE);
+        }
+        spindle_set_speed(spindle_compute_pwm_value(rpm));
+      #endif
     #endif
-  
-    #ifdef VARIABLE_SPINDLE
-      // NOTE: Assumes all calls to this function is when Grbl is not moving or must remain off.
-      if (settings.flags & BITFLAG_LASER_MODE) { 
-        if (state == SPINDLE_ENABLE_CCW) { rpm = 0.0; } // TODO: May need to be rpm_min*(100/MAX_SPINDLE_SPEED_OVERRIDE);
-      }
-      spindle_set_speed(spindle_compute_pwm_value(rpm));
-    #endif
-    #if (defined(USE_SPINDLE_DIR_AS_ENABLE_PIN) && \
-        !defined(SPINDLE_ENABLE_OFF_WITH_ZERO_SPEED)) || !defined(VARIABLE_SPINDLE)
-      // NOTE: Without variable spindle, the enable bit should just turn on or off, regardless
-      // if the spindle speed value is zero, as its ignored anyhow.
-      #ifdef INVERT_SPINDLE_ENABLE_PIN
-        ResetSpindleEnablebit();
-      #else
-        SetSpindleEnablebit();
-      #endif    
-    #endif
-  
   }
-  
   sys.report_ovr_counter = 0; // Set to report change immediately
 }
 

@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - To base code GRBL version 1.1h
+- Enable/Disable Pin works now
 
 ## [0.3]
 
