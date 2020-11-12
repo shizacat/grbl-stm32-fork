@@ -22,8 +22,8 @@
 #define grbl_h
 
 // Grbl versioning system
-#define GRBL_VERSION "1.1f"
-#define GRBL_VERSION_BUILD "20170801"
+#define GRBL_VERSION "1.1h"
+#define GRBL_VERSION_BUILD "20190825"
 
 #if !defined(STM32F103C8) && !defined(WIN32)
 #define AVRTARGET
@@ -31,56 +31,59 @@
 
 // Define standard libraries used by Grbl.
 #ifdef AVRTARGET
-#include <avr/io.h>
-#include <avr/pgmspace.h>
-#include <avr/interrupt.h>
-#include <avr/wdt.h>
-#include <util/delay.h>
-#include <inttypes.h>
-#include <stdbool.h>
-#define PORTPINDEF uint8_t
+  #include <avr/io.h>
+  #include <avr/pgmspace.h>
+  #include <avr/interrupt.h>
+  #include <avr/wdt.h>
+  #include <util/delay.h>
+  #include <inttypes.h>
+  #include <stdbool.h>
+  #define PORTPINDEF uint8_t
 #endif
+
 #include <math.h>
+
 #ifdef WIN32
-#include <Windows.h>
-typedef signed char  int8_t;
-typedef signed short int16_t;
-typedef signed int   int32_t;
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int   uint32_t;
-typedef signed long long   int64_t;
-typedef unsigned long long uint64_t;
-typedef int bool;
-#define false 0
-#define true 1
-#define truncf(x) (int32_t)x
-#define PSTR(x) x
-#define pgm_read_byte_near(x) *(x)
-#define _delay_ms(x) Sleep(x)
-#define M_PI 3.1415926f
-#define LOG(x,y)
-#define PORTPINDEF uint8_t
-#define printPgmString printString
-//#define NOEEPROMSUPPORT
+  #include <Windows.h>
+  typedef signed char  int8_t;
+  typedef signed short int16_t;
+  typedef signed int   int32_t;
+  typedef unsigned char  uint8_t;
+  typedef unsigned short uint16_t;
+  typedef unsigned int   uint32_t;
+  typedef signed long long   int64_t;
+  typedef unsigned long long uint64_t;
+  typedef int bool;
+  #define false 0
+  #define true 1
+  #define truncf(x) (int32_t)x
+  #define PSTR(x) x
+  #define pgm_read_byte_near(x) *(x)
+  #define _delay_ms(x) Sleep(x)
+  #define M_PI 3.1415926f
+  #define LOG(x,y)
+  #define PORTPINDEF uint8_t
+  #define printPgmString printString
+  //#define NOEEPROMSUPPORT
 #endif
 #ifdef STM32F103C8
-#include "stm32f10x.h"
-#include "stm32f10x_gpio.h"
-#include "stm32f10x_exti.h"
-#include "stm32f10x_tim.h"
-#include "misc.h"
-#define PSTR(x) x
-#define pgm_read_byte_near(x) *(x)
-void _delay_ms(uint32_t x);
-void _delay_us(uint32_t x);
-#define false 0
-#define true 1
-#define PORTPINDEF uint16_t
-// typedef int bool;
-//#define NOEEPROMSUPPORT
-#define printPgmString printString
+  #include "stm32f10x.h"
+  #include "stm32f10x_gpio.h"
+  #include "stm32f10x_exti.h"
+  #include "stm32f10x_tim.h"
+  #include "misc.h"
+  #define PSTR(x) x
+  #define pgm_read_byte_near(x) *(x)
+  void _delay_ms(uint32_t x);
+  void _delay_us(uint32_t x);
+  #define false 0
+  #define true 1
+  #define PORTPINDEF uint16_t
+  // typedef int bool;
+  //#define NOEEPROMSUPPORT
+  #define printPgmString printString
 #endif
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -93,6 +96,7 @@ void _delay_us(uint32_t x);
 #include "defaults.h"
 #include "cpu_map.h"
 #include "cpu_map_stm32f103.h"
+#include "cpu_map_win32.h"
 #include "planner.h"
 #include "coolant_control.h"
 #include "eeprom.h"
@@ -143,9 +147,9 @@ void _delay_us(uint32_t x);
 #endif
 
 #if defined(ENABLE_PARKING_OVERRIDE_CONTROL)
-	#if !defined(PARKING_ENABLE)
-		#error "ENABLE_PARKING_OVERRIDE_CONTROL must be enabled with PARKING_ENABLE."
-	#endif
+  #if !defined(PARKING_ENABLE)
+    #error "ENABLE_PARKING_OVERRIDE_CONTROL must be enabled with PARKING_ENABLE."
+  #endif
 #endif
 
 #if defined(SPINDLE_PWM_MIN_VALUE)
@@ -166,6 +170,35 @@ void _delay_us(uint32_t x);
 #if (REPORT_OVR_REFRESH_IDLE_COUNT < 1)
   #error "Override refresh must be greater than zero."
 #endif
+
+#if defined(ENABLE_DUAL_AXIS)
+  #if defined(STM32F103C8)
+    #error "STM32 Not support dual axies ..."
+  #endif
+
+  #if !((DUAL_AXIS_SELECT == X_AXIS) || (DUAL_AXIS_SELECT == Y_AXIS))
+    #error "Dual axis currently supports X or Y axes only."
+  #endif
+  #if defined(DUAL_AXIS_CONFIG_CNC_SHIELD_CLONE) && defined(VARIABLE_SPINDLE)
+    #error "VARIABLE_SPINDLE not supported with DUAL_AXIS_CNC_SHIELD_CLONE."
+  #endif
+  #if defined(DUAL_AXIS_CONFIG_CNC_SHIELD_CLONE) && defined(DUAL_AXIS_CONFIG_PROTONEER_V3_51)
+    #error "More than one dual axis configuration found. Select one."
+  #endif
+  #if !defined(DUAL_AXIS_CONFIG_CNC_SHIELD_CLONE) && !defined(DUAL_AXIS_CONFIG_PROTONEER_V3_51)
+    #error "No supported dual axis configuration found. Select one."
+  #endif
+  #if defined(COREXY)
+    #error "CORE XY not supported with dual axis feature."
+  #endif
+  #if defined(USE_SPINDLE_DIR_AS_ENABLE_PIN)
+    #error "USE_SPINDLE_DIR_AS_ENABLE_PIN not supported with dual axis feature."
+  #endif
+  #if defined(ENABLE_M7)
+    #error "ENABLE_M7 not supported with dual axis feature."
+  #endif
+#endif
+
 // ---------------------------------------------------------------------------------------
 
 #endif

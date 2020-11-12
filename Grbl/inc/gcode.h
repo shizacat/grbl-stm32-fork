@@ -125,11 +125,11 @@
 
 // Modal Group M9: Override control
 #ifdef DEACTIVATE_PARKING_UPON_INIT
-	#define OVERRIDE_DISABLED  0 // (Default: Must be zero)
-	#define OVERRIDE_PARKING_MOTION 1 // M56
+  #define OVERRIDE_DISABLED  0 // (Default: Must be zero)
+  #define OVERRIDE_PARKING_MOTION 1 // M56
 #else
-	#define OVERRIDE_PARKING_MOTION 0 // M56 (Default: Must be zero)
-	#define OVERRIDE_DISABLED  1 // Parking disabled.
+  #define OVERRIDE_PARKING_MOTION 0 // M56 (Default: Must be zero)
+  #define OVERRIDE_DISABLED  1 // Parking disabled.
 #endif
 
 // Modal Group G12: Active work coordinate system
@@ -193,7 +193,7 @@ typedef struct {
   uint8_t program_flow;    // {M0,M1,M2,M30}
   uint8_t coolant;         // {M7,M8,M9}
   uint8_t spindle;         // {M3,M4,M5}
-	uint8_t override;        // {M56}
+  uint8_t override;        // {M56}
 } gc_modal_t;
 
 typedef struct {

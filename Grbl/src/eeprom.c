@@ -21,7 +21,7 @@
 *                         $Revision: 1.6 $
 *                         $Date: Friday, February 11, 2005 07:16:44 UTC $
 ****************************************************************************/
-#include "grbl.h"
+// #include "grbl.h"  #!!!?
 
 #ifdef AVRTARGET
   #include <avr/io.h>
@@ -257,11 +257,11 @@ void memcpy_to_eeprom_with_checksum(unsigned int destination, char *source, unsi
     eeprom_put_char(destination++, *(source++)); 
   }
   eeprom_put_char(destination, checksum);
-#if defined(WIN32) || defined(STM32F103C8)
-#ifndef NOEEPROMSUPPORT
-  eeprom_flush();
-#endif
-#endif
+  #if defined(WIN32) || defined(STM32F103C8)
+    #ifndef NOEEPROMSUPPORT
+      eeprom_flush();
+    #endif
+  #endif
 }
 
 int memcpy_from_eeprom_with_checksum(char *destination, unsigned int source, unsigned int size) {
