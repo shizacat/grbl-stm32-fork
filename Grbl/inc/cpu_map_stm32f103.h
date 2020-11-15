@@ -58,9 +58,9 @@
   #define LIMIT_PORT       GPIOB
   #define RCC_LIMIT_PORT   RCC_APB2Periph_GPIOB
   #define GPIO_LIMIT_PORT  GPIO_PortSourceGPIOB
-  #define X_LIMIT_BIT      10  
-  #define Y_LIMIT_BIT      11  
-  #define Z_LIMIT_BIT      12  
+  #define X_LIMIT_BIT      12
+  #define Y_LIMIT_BIT      13
+  #define Z_LIMIT_BIT      14
 
   #if !defined(ENABLE_DUAL_AXIS)
     #define LIMIT_MASK     ((1<<X_LIMIT_BIT)|(1<<Y_LIMIT_BIT)|(1<<Z_LIMIT_BIT)) // All limit bits
@@ -96,11 +96,11 @@
     // Define spindle enable and spindle direction output pins.
     #define SPINDLE_ENABLE_PORT   GPIOB
     #define RCC_SPINDLE_ENABLE_PORT RCC_APB2Periph_GPIOB
-    #define SPINDLE_ENABLE_BIT    13  // 
+    #define SPINDLE_ENABLE_BIT    1  // 
     #ifndef USE_SPINDLE_DIR_AS_ENABLE_PIN
       #define SPINDLE_DIRECTION_DDR   GPIOB
       #define SPINDLE_DIRECTION_PORT  GPIOB
-      #define SPINDLE_DIRECTION_BIT   14  // 
+      #define SPINDLE_DIRECTION_BIT   2  // 
     #endif
     #define SetSpindleEnablebit()       GPIO_WriteBit(SPINDLE_ENABLE_PORT, 1 << SPINDLE_ENABLE_BIT, Bit_SET)
     #define ResetSpindleEnablebit()     GPIO_WriteBit(SPINDLE_ENABLE_PORT, 1 << SPINDLE_ENABLE_BIT, Bit_RESET)
