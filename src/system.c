@@ -36,7 +36,7 @@ void system_init()
   #ifdef STM32F103C8
     GPIO_InitTypeDef GPIO_InitStructure;
     
-    RCC_CONTROL_PORT();
+    CONTROL_PORT_RCC();
     __HAL_RCC_AFIO_CLK_ENABLE();
     GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;    
     GPIO_InitStructure.Mode = GPIO_MODE_IT_FALLING;
@@ -60,17 +60,22 @@ void system_init()
 uint8_t system_control_get_state()
 {
   uint8_t control_state = 0;
+
   #ifdef AVRTARGET
     uint8_t pin = (CONTROL_PIN & CONTROL_MASK) ^ CONTROL_MASK;
+    #ifdef INVERT_CONTROL_PIN_MASK
+      pin ^= INVERT_CONTROL_PIN_MASK;
+    #endif
   #endif
   #ifdef WIN32
     uint8_t pin = 0;
+    #ifdef INVERT_CONTROL_PIN_MASK
+      pin ^= INVERT_CONTROL_PIN_MASK;
+    #endif
   #endif
   #ifdef STM32F103C8
-    uint16_t pin = HAL_GPIO_Read(CONTROL_PORT);
-  #endif
-  #ifdef INVERT_CONTROL_PIN_MASK
-    pin ^= INVERT_CONTROL_PIN_MASK;
+    // Invert value - trigger has detected when falling edge
+    uint16_t pin = ~ HAL_GPIO_Read(CONTROL_PORT);
   #endif
   if (pin) {
     #ifdef ENABLE_SAFETY_DOOR_INPUT_PIN

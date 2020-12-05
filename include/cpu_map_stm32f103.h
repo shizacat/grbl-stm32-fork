@@ -68,10 +68,8 @@
 
   // Define user-control controls (cycle start, reset, feed hold) input pins.
   // NOTE: All CONTROLs pins must be on the same port and not on a port with other input pins (limits).
-  #define CONTROL_PIN_PORT              GPIOB  // ??? it is very stranging name
   #define CONTROL_PORT                  GPIOB
-  #define RCC_CONTROL_PORT              __HAL_RCC_GPIOB_CLK_ENABLE
-  // #define GPIO_CONTROL_PORT             GPIO_PortSourceGPIOB
+  #define CONTROL_PORT_RCC              __HAL_RCC_GPIOB_CLK_ENABLE
   #define CONTROL_RESET_BIT             5  
   #define CONTROL_FEED_HOLD_BIT         6  
   #define CONTROL_CYCLE_START_BIT       7  
