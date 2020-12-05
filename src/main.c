@@ -35,14 +35,10 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
 
 #ifdef STM32F103C8
   #include "main.h"
-  // #include "usb_lib.h"
-  // #include "hw_config.h"
   // #include "stm32eeprom.h"
   
   #ifdef USEUSB
     #include "usb_device.h"
-    // #include "usb_desc.h"
-    // #include "usb_pwr.h"
   #else
     #include "stm32f10x_usart.h"
     void USART1_Configuration(u32 BaudRate)
@@ -253,7 +249,7 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
   void _delay_ms(uint32_t x)
   {
     uint32_t temp;
-    SysTick->LOAD = (uint32_t)72000000 / 8000 * x;                 // Loading time
+    SysTick->LOAD = (uint32_t)72000000 / 8000 * x;            // Loading time
     SysTick->VAL = 0x00;                                      // Empty the counter
     SysTick->CTRL = 0x01;                                     // Start from bottom
     do
@@ -276,22 +272,6 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
   void Error_Handler(void)
   {
   }
-
-  // extern PCD_HandleTypeDef hpcd_USB_FS;
-  // void USB_LP_CAN1_RX0_IRQHandler(void){
-  //   HAL_PCD_IRQHandler(&hpcd_USB_FS);
-  // }
-
-  // void SysTick_Handler(void)
-  // {
-  //   /* USER CODE BEGIN SysTick_IRQn 0 */
-
-  //   /* USER CODE END SysTick_IRQn 0 */
-  //   HAL_IncTick();
-  //   /* USER CODE BEGIN SysTick_IRQn 1 */
-
-  //   /* USER CODE END SysTick_IRQn 1 */
-  // }
 
   void HAL_MspInit(void)
   {
