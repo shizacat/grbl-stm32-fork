@@ -7,6 +7,8 @@
 - Change pinout. Direction XYZ to GPIOA4,5,6. Enable Stepper to GPIOB0.
 - Change pinout. Limit XYZ to GPIOB12,13,14. Spindle En and Dir to GPIOB1,2.
 - Replace SPL on STM32Cube.
+- Control pins have work now. Change logick work.
+  Add new config flag - CONTROL_PIN_USE_NC. Mask for invert don't support.
 
 ## [0.3]
 
