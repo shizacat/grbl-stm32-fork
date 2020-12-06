@@ -64,13 +64,21 @@ void limits_init()
 #endif
 #ifdef STM32F103C8
 	GPIO_InitTypeDef GPIO_InitStructure;
-  RCC_LIMIT_PORT();
+  LIMIT_PORT_RCC();
   __HAL_RCC_AFIO_CLK_ENABLE();
   
   GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStructure.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStructure.Pin = LIMIT_MASK;
-  GPIO_InitStructure.Pull = GPIO_PULLUP;
+  #ifdef INVERT_LIMIT_PIN_MASK
+    GPIO_InitStructure.Mode = GPIO_MODE_IT_RISING;
+  #else
+    GPIO_InitStructure.Mode = GPIO_MODE_IT_FALLING;
+  #endif
+  #ifdef DISABLE_LIMIT_PIN_PULL_UP
+    GPIO_InitStructure.Pull = GPIO_NOPULL;
+  #else
+    GPIO_InitStructure.Pull = GPIO_PULLUP;
+  #endif
   HAL_GPIO_Init(LIMIT_PORT, &GPIO_InitStructure);
 
 	if (bit_istrue(settings.flags, BITFLAG_HARD_LIMIT_ENABLE))
@@ -105,16 +113,24 @@ void limits_disable()
 uint8_t limits_get_state()
 {
   uint8_t limit_state = 0;
+  
   #if defined(AVRTARGET)
     uint8_t pin = (LIMIT_PIN & LIMIT_MASK);
+    #ifdef INVERT_LIMIT_PIN_MASK
+      pin ^= INVERT_LIMIT_PIN_MASK;
+    #endif
+    if (bit_isfalse(settings.flags, BITFLAG_INVERT_LIMIT_PINS)) { 
+      pin ^= LIMIT_MASK;
+    }
   #endif
-  #if defined(STM32F103C8)
-    uint16_t pin = HAL_GPIO_Read(LIMIT_PIN);
+  #ifdef STM32F103C8
+    #ifdef INVERT_LIMIT_PIN_MASK
+      uint16_t pin = HAL_GPIO_Read(LIMIT_PORT);
+    #else
+      uint16_t pin = ~ HAL_GPIO_Read(LIMIT_PORT);
+    #endif
   #endif
-  #ifdef INVERT_LIMIT_PIN_MASK
-    pin ^= INVERT_LIMIT_PIN_MASK;
-  #endif
-  if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { pin ^= LIMIT_MASK; }
+
   if (pin) {
     uint8_t idx;
     for (idx=0; idx<N_AXIS; idx++) {
@@ -170,16 +186,16 @@ void EXTI15_10_IRQHandler(void)
   // limit setting if their limits are constantly triggering after a reset and move their axes.
   if (sys.state != STATE_ALARM) {
     if (!(sys_rt_exec_alarm)) {
-#ifdef HARD_LIMIT_FORCE_STATE_CHECK
-      // Check limit pin state.
-      if (limits_get_state()) {
+      #ifdef HARD_LIMIT_FORCE_STATE_CHECK
+        // Check limit pin state.
+        if (limits_get_state()) {
+          mc_reset(); // Initiate system kill.
+          system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
+        }
+      #else
         mc_reset(); // Initiate system kill.
         system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
-      }
-#else
-      mc_reset(); // Initiate system kill.
-      system_set_exec_alarm(EXEC_ALARM_HARD_LIMIT); // Indicate hard limit critical event
-#endif
+      #endif
     }
   }
 }

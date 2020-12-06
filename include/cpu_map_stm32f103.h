@@ -54,10 +54,8 @@
 
   // Define homing/hard limit switch input pins and limit interrupt vectors. 
   // NOTE: All limit bit pins must be on the same port, but not on a port with other input pins (CONTROL).
-  #define LIMIT_PIN        GPIOB
   #define LIMIT_PORT       GPIOB
-  #define RCC_LIMIT_PORT   __HAL_RCC_GPIOB_CLK_ENABLE
-  // #define GPIO_LIMIT_PORT  GPIO_PortSourceGPIOB
+  #define LIMIT_PORT_RCC   __HAL_RCC_GPIOB_CLK_ENABLE
   #define X_LIMIT_BIT      12
   #define Y_LIMIT_BIT      13
   #define Z_LIMIT_BIT      14
@@ -70,10 +68,10 @@
   // NOTE: All CONTROLs pins must be on the same port and not on a port with other input pins (limits).
   #define CONTROL_PORT                  GPIOB
   #define CONTROL_PORT_RCC              __HAL_RCC_GPIOB_CLK_ENABLE
-  #define CONTROL_RESET_BIT             5  
-  #define CONTROL_FEED_HOLD_BIT         6  
-  #define CONTROL_CYCLE_START_BIT       7  
-  #define CONTROL_SAFETY_DOOR_BIT       8  
+  #define CONTROL_RESET_BIT             5
+  #define CONTROL_FEED_HOLD_BIT         6
+  #define CONTROL_CYCLE_START_BIT       7
+  #define CONTROL_SAFETY_DOOR_BIT       8
   #define CONTROL_MASK                 ((1<<CONTROL_RESET_BIT)|(1<<CONTROL_FEED_HOLD_BIT)|(1<<CONTROL_CYCLE_START_BIT)|(1<<CONTROL_SAFETY_DOOR_BIT))
 
   // Define probe switch input pin.
