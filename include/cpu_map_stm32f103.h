@@ -30,7 +30,7 @@
 
   // Define step pulse output pins. NOTE: All step bit pins must be on the same port.
   #define STEP_PORT       GPIOA
-  #define RCC_STEP_PORT   __HAL_RCC_GPIOA_CLK_ENABLE
+  #define STEP_PORT_RCC   __HAL_RCC_GPIOA_CLK_ENABLE
   #define X_STEP_BIT      0
   #define Y_STEP_BIT      1
   #define Z_STEP_BIT      2
@@ -38,7 +38,7 @@
 
   // Define step direction output pins. NOTE: All direction pins must be on the same port.
   #define DIRECTION_PORT      GPIOA
-  #define RCC_DIRECTION_PORT  __HAL_RCC_GPIOA_CLK_ENABLE
+  #define DIRECTION_PORT_RCC  __HAL_RCC_GPIOA_CLK_ENABLE
   #define X_DIRECTION_BIT     4
   #define Y_DIRECTION_BIT     5  
   #define Z_DIRECTION_BIT     6
@@ -46,7 +46,7 @@
 
   // Define stepper driver enable/disable output pin.
   #define STEPPERS_DISABLE_PORT        GPIOB
-  #define RCC_STEPPERS_DISABLE_PORT    __HAL_RCC_GPIOB_CLK_ENABLE
+  #define STEPPERS_DISABLE_PORT_RCC    __HAL_RCC_GPIOB_CLK_ENABLE
   #define STEPPERS_DISABLE_BIT         0
   #define STEPPERS_DISABLE_MASK        (1<<STEPPERS_DISABLE_BIT)
   #define SetStepperDisableBit()       HAL_GPIO_WritePin(STEPPERS_DISABLE_PORT, STEPPERS_DISABLE_MASK, GPIO_PIN_SET)

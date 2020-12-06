@@ -788,18 +788,18 @@ void stepper_init()
   // Configure step and direction interface pins
   #ifdef STM32F103C8
     GPIO_InitTypeDef GPIO_InitStructure;
-    RCC_STEPPERS_DISABLE_PORT();
+    STEPPERS_DISABLE_PORT_RCC();
     GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
     GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStructure.Pin = STEPPERS_DISABLE_MASK;
     GPIO_InitStructure.Pull = GPIO_NOPULL; // ???
     HAL_GPIO_Init(STEPPERS_DISABLE_PORT, &GPIO_InitStructure);
 
-    RCC_STEP_PORT();
+    STEP_PORT_RCC();
     GPIO_InitStructure.Pin = STEP_MASK;
     HAL_GPIO_Init(STEP_PORT, &GPIO_InitStructure);
 
-    RCC_DIRECTION_PORT();
+    DIRECTION_PORT_RCC();
     GPIO_InitStructure.Pin = DIRECTION_MASK;
     HAL_GPIO_Init(DIRECTION_PORT, &GPIO_InitStructure);
 
@@ -1358,6 +1358,7 @@ float st_get_realtime_rate()
   }
   return 0.0f;
 }
+
 #ifdef STM32F103C8
 void TIM_Configuration(TIM_HandleTypeDef* htim, TIM_TypeDef* TIMER, uint32_t Period, uint32_t Prescaler, uint32_t PP)
 {
