@@ -21,9 +21,16 @@
 
 #include "grbl.h"
 
-settings_t settings;
+// Avron
+#ifdef AVRTARGET
+  settings_t settings;
+#endif
+#ifdef STM32F103C8
+  union FlashMap FlashMap;
+#endif
 
 const settings_t defaults = {\
+    .version = SETTINGS_VERSION,
     .pulse_microseconds = DEFAULT_STEP_PULSE_MICROSECONDS,
     .stepper_idle_lock_time = DEFAULT_STEPPER_IDLE_LOCK_TIME,
     .step_invert_mask = DEFAULT_STEPPING_INVERT_MASK,
@@ -175,6 +182,12 @@ uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 
 // Reads Grbl global settings struct from EEPROM.
 uint8_t read_global_settings() {
+  #ifdef STM32F103C8
+    #ifndef NOEEPROMSUPPORT
+      eeprom_init();
+    #endif
+  #endif
+
   // Check version-byte of eeprom
   uint8_t version = eeprom_get_char(0);
   if (version == SETTINGS_VERSION) {

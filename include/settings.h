@@ -85,6 +85,8 @@
 
 // Global persistent settings (Stored from byte EEPROM_ADDR_GLOBAL onwards)
 typedef struct {
+  uint8_t version;
+
   // Axis settings
   float steps_per_mm[N_AXIS];
   float max_rate[N_AXIS];
@@ -111,7 +113,23 @@ typedef struct {
   uint16_t homing_debounce_delay;
   float homing_pulloff;
 } settings_t;
-extern settings_t settings;
+#ifdef AVRTARGET
+  extern settings_t settings;
+#endif 
+#ifdef STM32F103C8
+  union FlashMap {
+    struct {
+      uint8_t Data8[FLASH_PAGE_SIZE - 1];
+      uint8_t checksum;
+    } FlashStruct;
+    uint32_t Data32[FLASH_PAGE_SIZE/4];
+    settings_t settings_map;
+  };
+
+  extern union FlashMap FlashMap;
+  #define settings FlashMap.settings_map
+#endif
+
 
 // Initialize the configuration subsystem (load settings from EEPROM)
 void settings_init();

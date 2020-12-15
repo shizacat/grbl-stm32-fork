@@ -9,6 +9,7 @@
 - Replace SPL on STM32Cube.
 - Control pins have work now. Change logick work.
   Add new config flag - CONTROL_PIN_USE_NC. Mask for invert don't support.
+- Update code for settings and work with eeprom.
 
 ## [0.3]
 

@@ -51,10 +51,6 @@
   #include "settings.h"
 #endif
 
-#if defined(WIN32) || defined (STM32F103C8)
-  unsigned char EE_Buffer[0x400];
-#endif
-
 #if defined(WIN32)
   #ifndef NOEEPROMSUPPORT
   void eeprom_flush()
@@ -88,60 +84,43 @@
 #ifndef NOEEPROMSUPPORT
   void eeprom_flush()
   {
-    uint32_t nAddress = EEPROM_START_ADDRESS;
-    uint16_t *pBuffer = (uint16_t *)EE_Buffer;
-    uint16_t nSize = FLASH_PAGE_SIZE;
+    FLASH_EraseInitTypeDef EraseInitStruct;
     uint32_t PAGEError = 0;
+    uint32_t nAddress = EEPROM_START_ADDRESS;
+    __IO uint32_t *pBuffer = FlashMap.Data32;
 
-    // FLASH_Status FlashStatus = FLASH_COMPLETE;
+    HAL_FLASH_Unlock();
 
     /* Erase Page0 */
-    FLASH_EraseInitTypeDef EraseInitStruct;
     EraseInitStruct.TypeErase   = FLASH_TYPEERASE_PAGES;
     EraseInitStruct.PageAddress = EEPROM_START_ADDRESS;
     EraseInitStruct.NbPages     = 1;
 
     /* If erase operation was failed, a Flash error code is returned */
     if (HAL_FLASHEx_Erase(&EraseInitStruct, &PAGEError) != HAL_OK){
-      return;
+      Error_Handler();
     }
 
-    while (nSize > 0)
-    {
-      if (*pBuffer != 0xffff)
-      {
-        HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, nAddress, *pBuffer++);
-      } else {
-        pBuffer++;
+    while (nAddress < (EEPROM_START_ADDRESS + FLASH_PAGE_SIZE)) {
+      if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, nAddress, *pBuffer) != HAL_OK){
+        Error_Handler();
       }
-      if (*pBuffer != 0xffff) {
-        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, nAddress + 2, *pBuffer++);
-      } else {
-        pBuffer++;
-      }
-      nSize -= 4;
       nAddress += 4;
+      pBuffer += 1;
     }
+
+    HAL_FLASH_Lock();
   }
 
   void eeprom_init()
   {
-    uint16_t VarIdx = 0;
-    uint8_t *pTmp = EE_Buffer;
+    uint32_t nAddress = EEPROM_START_ADDRESS;
+    __IO uint32_t *pBuffer = FlashMap.Data32;
 
-    for (VarIdx = 0; VarIdx < FLASH_PAGE_SIZE; VarIdx++)
-    {
-      *pTmp++ = (*(__IO uint8_t*)(EEPROM_START_ADDRESS + VarIdx));
-    }
-
-    if (EE_Buffer[0] != SETTINGS_VERSION)
-    {
-      pTmp = EE_Buffer;
-
-      for (VarIdx = 0; VarIdx < FLASH_PAGE_SIZE; VarIdx++)
-      {
-        *pTmp++ = 0xFF;
-      }
+    while (nAddress < (EEPROM_START_ADDRESS + FLASH_PAGE_SIZE)) {
+      *pBuffer = *(__IO uint32_t *)nAddress;
+      nAddress += 4;
+      pBuffer += 1;
     }
   }
 #endif
@@ -165,7 +144,7 @@ unsigned char eeprom_get_char( unsigned int addr )
     return EEDR; // Return the byte read from EEPROM.
   #endif
   #if defined(WIN32) || defined(STM32F103C8)
-    return EE_Buffer[addr];
+    return FlashMap.FlashStruct.Data8[addr];
   #endif
 }
 
@@ -188,89 +167,112 @@ unsigned char eeprom_get_char( unsigned int addr )
  */
 void eeprom_put_char( unsigned int addr, unsigned char new_value )
 {
-#ifdef AVRTARGET
-	char old_value; // Old EEPROM value.
-	char diff_mask; // Difference mask, i.e. old value XOR new value.
+  #ifdef AVRTARGET
+    char old_value; // Old EEPROM value.
+    char diff_mask; // Difference mask, i.e. old value XOR new value.
 
-	cli(); // Ensure atomic operation for the write operation.
-	
-	do {} while( EECR & (1<<EEPE) ); // Wait for completion of previous write.
-	#ifndef EEPROM_IGNORE_SELFPROG
-	do {} while( SPMCSR & (1<<SELFPRGEN) ); // Wait for completion of SPM.
-	#endif
-	
-	EEAR = addr; // Set EEPROM address register.
-	EECR = (1<<EERE); // Start EEPROM read operation.
-	old_value = EEDR; // Get old EEPROM value.
-	diff_mask = old_value ^ new_value; // Get bit differences.
-	
-	// Check if any bits are changed to '1' in the new value.
-	if( diff_mask & new_value ) {
-		// Now we know that _some_ bits need to be erased to '1'.
-		
-		// Check if any bits in the new value are '0'.
-		if( new_value != 0xff ) {
-			// Now we know that some bits need to be programmed to '0' also.
-			
-			EEDR = new_value; // Set EEPROM data register.
-			EECR = (1<<EEMPE) | // Set Master Write Enable bit...
-			       (0<<EEPM1) | (0<<EEPM0); // ...and Erase+Write mode.
-			EECR |= (1<<EEPE);  // Start Erase+Write operation.
-		} else {
-			// Now we know that all bits should be erased.
+    cli(); // Ensure atomic operation for the write operation.
+    
+    do {} while( EECR & (1<<EEPE) ); // Wait for completion of previous write.
+    #ifndef EEPROM_IGNORE_SELFPROG
+    do {} while( SPMCSR & (1<<SELFPRGEN) ); // Wait for completion of SPM.
+    #endif
+    
+    EEAR = addr; // Set EEPROM address register.
+    EECR = (1<<EERE); // Start EEPROM read operation.
+    old_value = EEDR; // Get old EEPROM value.
+    diff_mask = old_value ^ new_value; // Get bit differences.
+    
+    // Check if any bits are changed to '1' in the new value.
+    if( diff_mask & new_value ) {
+      // Now we know that _some_ bits need to be erased to '1'.
+      
+      // Check if any bits in the new value are '0'.
+      if( new_value != 0xff ) {
+        // Now we know that some bits need to be programmed to '0' also.
+        
+        EEDR = new_value; // Set EEPROM data register.
+        EECR = (1<<EEMPE) | // Set Master Write Enable bit...
+              (0<<EEPM1) | (0<<EEPM0); // ...and Erase+Write mode.
+        EECR |= (1<<EEPE);  // Start Erase+Write operation.
+      } else {
+        // Now we know that all bits should be erased.
 
-			EECR = (1<<EEMPE) | // Set Master Write Enable bit...
-			       (1<<EEPM0);  // ...and Erase-only mode.
-			EECR |= (1<<EEPE);  // Start Erase-only operation.
-		}
-	} else {
-		// Now we know that _no_ bits need to be erased to '1'.
-		
-		// Check if any bits are changed from '1' in the old value.
-		if( diff_mask ) {
-			// Now we know that _some_ bits need to the programmed to '0'.
-			
-			EEDR = new_value;   // Set EEPROM data register.
-			EECR = (1<<EEMPE) | // Set Master Write Enable bit...
-			       (1<<EEPM1);  // ...and Write-only mode.
-			EECR |= (1<<EEPE);  // Start Write-only operation.
-		}
-	}
-	
-	sei(); // Restore interrupt flag state.
-#endif
-#if defined(WIN32) || defined(STM32F103C8)
-	EE_Buffer[addr] = new_value;
-#endif
+        EECR = (1<<EEMPE) | // Set Master Write Enable bit...
+              (1<<EEPM0);  // ...and Erase-only mode.
+        EECR |= (1<<EEPE);  // Start Erase-only operation.
+      }
+    } else {
+      // Now we know that _no_ bits need to be erased to '1'.
+      
+      // Check if any bits are changed from '1' in the old value.
+      if( diff_mask ) {
+        // Now we know that _some_ bits need to the programmed to '0'.
+        
+        EEDR = new_value;   // Set EEPROM data register.
+        EECR = (1<<EEMPE) | // Set Master Write Enable bit...
+              (1<<EEPM1);  // ...and Write-only mode.
+        EECR |= (1<<EEPE);  // Start Write-only operation.
+      }
+    }
+    
+    sei(); // Restore interrupt flag state.
+  #endif
+  #if defined(WIN32) || defined(STM32F103C8)
+    FlashMap.FlashStruct.Data8[addr] = new_value;
+  #endif
 }
 
 // Extensions added as part of Grbl 
 
+#ifdef STM32F103C8
+  uint8_t calc_checksum(){
+    uint8_t checksum = 0;
+    for(uint32_t i = 0; i < (FLASH_PAGE_SIZE - 1); i++) { 
+      checksum = (checksum << 1) || (checksum >> 7);
+      checksum += FlashMap.FlashStruct.Data8[i];
+    }
+    return checksum;
+  }
+#endif
 
 void memcpy_to_eeprom_with_checksum(unsigned int destination, char *source, unsigned int size) {
-  unsigned char checksum = 0;
-  for(; size > 0; size--) { 
-    checksum = (checksum << 1) || (checksum >> 7);
-    checksum += *source;
-    eeprom_put_char(destination++, *(source++)); 
-  }
-  eeprom_put_char(destination, checksum);
+  #ifdef AVRTARGET
+    unsigned char checksum = 0;
+    for(; size > 0; size--) { 
+      checksum = (checksum << 1) || (checksum >> 7);
+      checksum += *source;
+      eeprom_put_char(destination++, *(source++)); 
+    }
+    eeprom_put_char(destination, checksum);
+  #endif
+
   #if defined(WIN32) || defined(STM32F103C8)
     #ifndef NOEEPROMSUPPORT
+      FlashMap.FlashStruct.checksum = calc_checksum();
       eeprom_flush();
     #endif
   #endif
 }
 
 int memcpy_from_eeprom_with_checksum(char *destination, unsigned int source, unsigned int size) {
-  unsigned char data, checksum = 0;
-  for(; size > 0; size--) { 
-    data = eeprom_get_char(source++);
-    checksum = (checksum << 1) || (checksum >> 7);
-    checksum += data;    
-    *(destination++) = data; 
-  }
-  return(checksum == eeprom_get_char(source));
+  #ifdef AVRTARGET
+    unsigned char data, checksum = 0;
+    for(; size > 0; size--) { 
+      data = eeprom_get_char(source++);
+      checksum = (checksum << 1) || (checksum >> 7);
+      checksum += data;    
+      *(destination++) = data; 
+    }
+    return(checksum == eeprom_get_char(source));
+  #endif
+
+  #if defined(WIN32) || defined(STM32F103C8)
+    #ifndef NOEEPROMSUPPORT
+      eeprom_init();
+      return FlashMap.FlashStruct.checksum == calc_checksum();
+    #endif
+  #endif
 }
 
 // end of file

@@ -116,12 +116,6 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
     #else
       USART1_Configuration(115200);
     #endif
-
-    #ifndef NOEEPROMSUPPORT
-      HAL_FLASH_Unlock();
-      eeprom_init();
-    #endif
-
   #endif
 
   // Initialize system upon power-up.

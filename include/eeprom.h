@@ -22,7 +22,7 @@
 #define eeprom_h
 
 #if defined(WIN32) || defined (STM32F103C8)
-void eeprom_init();
+  void eeprom_init();
 #endif
 
 unsigned char eeprom_get_char(unsigned int addr);
