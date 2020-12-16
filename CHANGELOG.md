@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.4]
+
 - To base code GRBL version 1.1h
 - Enable/Disable spindle Pin works now
 - Change pinout. Direction XYZ to GPIOA4,5,6. Enable Stepper to GPIOB0.
